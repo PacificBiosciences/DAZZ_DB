@@ -388,14 +388,14 @@ int main(int argc, char *argv[])
           int   well, beg, end, qv;
 
           find = index(read+1,'/');
-          if (find != NULL && sscanf(find+1,"%d/%d_%d RQ=0.%d\n",&well,&beg,&end,&qv) >= 3)
+          if (find != NULL && sscanf(find+1,"%d/%d_%d\n",&well,&beg,&end,&qv) >= 3)
             { *find = '\0';
               prolog = Strdup(read+1,"Extracting prolog");
               *find = '/';
               if (prolog == NULL) goto error;
             }
           else
-            { fprintf(stderr,"File %s.fasta, Line %d: Pacbio header line format error\n",
+            { fprintf(stderr,"File %s.fasta, Line %d: (316)Pacbio header line format error\n",
                              core,nline);
               goto error;
             }
@@ -441,6 +441,9 @@ int main(int argc, char *argv[])
                   if (read[rlen+x] != '\n')
                     { fprintf(stderr,"File %s.fasta, Line %d:",core,nline);
                       fprintf(stderr," Fasta line is too long (> %d chars)\n",MAX_NAME-2);
+                      fprintf(stderr,"Last character is %c\n", read[rlen+x]);
+                      fprintf(stderr,"x=%d rlen=%d\n", x, rlen);
+                      fprintf(stderr,"read is %s\n", read);
                       goto error;
                     }
                   if (eof || read[rlen] == '>')

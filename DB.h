@@ -294,7 +294,7 @@ typedef struct
  *
  ********************************************************************************************/
 
-#define MAX_NAME 10000      //  Longest file name or fasta header line
+#define MAX_NAME 50000      //  Longest file name or fasta header line
 
 #define DB_NFILE  "files = %9d\n"   //  number of files
 #define DB_FDATA  "  %9d %s %s\n"   //  last read index + 1, fasta prolog, file name
