@@ -507,7 +507,7 @@ int main(int argc, char *argv[])
                 else
                   if (PB_MAP)
                   // For PacBio: print DB index, well#, length
-                  printf("%d %d %d",i,r->origin,r->rlen);
+                  printf("%d %s/%d/%d_%d %d",i,flist[map],r->origin,r->fpulse,r->fpulse+len,r->rlen);
                   else
                   printf(">%s/%d/%d_%d",flist[map],r->origin,r->fpulse,r->fpulse+len);
                 if (qv > 0)
