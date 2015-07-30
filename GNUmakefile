@@ -1,67 +1,40 @@
 CFLAGS = -O3 -Wall -Wextra -fno-strict-aliasing -Wno-unused-result
-
+LDLIBS+= -lm
+LDFLAGS+= -g -rdynamic
 ALL = fasta2DB DB2fasta quiva2DB DB2quiva DBsplit DBdust Catrack DBshow DBstats DBrm simulator \
       fasta2DAM DAM2fasta
 
-all: $(ALL)
+all: ${ALL}
 
-fasta2DB: fasta2DB.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o fasta2DB fasta2DB.c DB.c QV.c -lm
+%: %.o
+	${CC} -o $@ $^ ${LDLIBS} ${LDFLAGS}
+fasta2DB: fasta2DB.o DB.o QV.o
+DB2fasta: DB2fasta.o DB.o QV.o
+quiva2DB: quiva2DB.o DB.o QV.o
+DB2quiva: DB2quiva.o DB.o QV.o
+DBsplit: DBsplit.o DB.o QV.o
+DBdust: DBdust.o DB.o QV.o
+Catrack: Catrack.o DB.o QV.o
+DBshow: DBshow.o DB.o QV.o
+DBstats: DBstats.o DB.o QV.o
+DBrm: DBrm.o DB.o QV.o
+simulator: simulator.o DB.o QV.o
+fasta2DAM: fasta2DAM.o DB.o QV.o
+DAM2fasta: DAM2fasta.o DB.o QV.o
+DBupgrade.Sep.25.2014: DBupgrade.Sep.25.2014.o DB.o QV.o
+DBupgrade.Dec.31.2014: DBupgrade.Dec.31.2014.o DB.o QV.o
+DUSTupgrade.Jan.1.2015: DUSTupgrade.Jan.1.2015.o DB.o QV.o
 
-DB2fasta: DB2fasta.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o DB2fasta DB2fasta.c DB.c QV.c -lm
-
-quiva2DB: quiva2DB.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o quiva2DB quiva2DB.c DB.c QV.c -lm
-
-DB2quiva: DB2quiva.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o DB2quiva DB2quiva.c DB.c QV.c -lm
-
-DBsplit: DBsplit.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o DBsplit DBsplit.c DB.c QV.c -lm
-
-DBdust: DBdust.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o DBdust DBdust.c DB.c QV.c -lm
-
-Catrack: Catrack.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o Catrack Catrack.c DB.c QV.c -lm
-
-DBshow: DBshow.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o DBshow DBshow.c DB.c QV.c -lm
-
-DBstats: DBstats.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o DBstats DBstats.c DB.c QV.c -lm
-
-DBrm: DBrm.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o DBrm DBrm.c DB.c QV.c -lm
-
-simulator: simulator.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o simulator simulator.c DB.c QV.c -lm
-
-fasta2DAM: fasta2DAM.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o fasta2DAM fasta2DAM.c DB.c QV.c -lm
-
-DAM2fasta: DAM2fasta.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o DAM2fasta DAM2fasta.c DB.c QV.c -lm
-
-DBupgrade.Sep.25.2014: DBupgrade.Sep.25.2014.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o DBupgrade.Sep.25.2014 DBupgrade.Sep.25.2014.c DB.c QV.c -lm
-
-DBupgrade.Dec.31.2014: DBupgrade.Dec.31.2014.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o DBupgrade.Dec.31.2014 DBupgrade.Dec.31.2014.c DB.c QV.c -lm
-
-DUSTupgrade.Jan.1.2015: DUSTupgrade.Jan.1.2015.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o DUSTupgrade.Jan.1.2015 DUSTupgrade.Jan.1.2015.c DB.c QV.c -lm
+basic:=fasta2DB.o DB2fasta.o quiva2DB.o DB2quiva.o DBsplit.o DBdust.o Catrack.o DBshow.o DBstats.o \
+  DBrm.o simulator.o fasta2DAM.o DAM2fasta.o \
+  DBupgrade.Sep.25.2014.o \
+  DBupgrade.Dec.31.2014.o \
+  DUSTupgrade.Jan.1.2015.o \
+  DB2fasta.o
+${basic}: DB.h QV.h
 
 clean:
-	rm -f $(ALL)
+	rm -f ${ALL} *.o
 	rm -fr *.dSYM
 	rm -f DBupgrade.Sep.25.2014 DBupgrade.Dec.31.2014 DUSTupgrade.Jan.1.2015
 	rm -f dazz.db.tar.gz
-
-install:
-	cp $(ALL) ~/bin
-
-package:
-	make clean
-	tar -zcf dazz.db.tar.gz README Makefile *.h *.c
