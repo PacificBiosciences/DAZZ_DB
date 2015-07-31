@@ -5,9 +5,10 @@ LDLIBS+= -lm
 LDFLAGS+=
 ALL = fasta2DB DB2fasta quiva2DB DB2quiva DBsplit DBdust Catrack DBshow DBstats DBrm simulator \
       fasta2DAM DAM2fasta
+vpath %.c ${THISDIR}
 
 all: ${ALL}
-${ALL}: -ldazzdb
+${ALL}: libdazzdb.a
 
 %: %.o
 	${CC} -o $@ $^ ${LDLIBS} ${LDFLAGS}
@@ -19,11 +20,11 @@ libdazzdb.a: DB.o QV.o
 
 clean:
 	rm -f ${ALL} *.o
-	rm -f ${DEPS}
+	rm -f ${DEPS} *.a
 	rm -fr *.dSYM
 	rm -f DBupgrade.Sep.25.2014 DBupgrade.Dec.31.2014 DUSTupgrade.Jan.1.2015
 	rm -f dazz.db.tar.gz
 
-SRCS:=$(wildcard ${THISDIR}/*.c)
-DEPS:=${SRCS:.c=.d}
+SRCS:=$(notdir $(wildcard ${THISDIR}/*.c))
+DEPS:=$(patsubst %.c,%.d,${SRCS})
 -include ${DEPS}
