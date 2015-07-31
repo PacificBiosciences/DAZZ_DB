@@ -88,7 +88,7 @@ FILE *Fopen(char *name, char *mode)
   } else {
       strcpy(newmode,mode);
   }
-  if ((f = fopen(name,mode)) == NULL)
+  if ((f = fopen(name,newmode)) == NULL)
     EPRINTF(EPLACE,"%s: Cannot open %s for '%s'\n",Prog_Name,name,mode);
   return (f);
 }
