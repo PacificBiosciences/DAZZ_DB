@@ -18,7 +18,8 @@ libdazzdb.a: DB.o QV.o
 	${CC} -o $@ -c $< -fPIC ${CFLAGS} ${CPPFLAGS}
 libdazzdb.so: DB.os QV.os
 	${CC} -o $@ $^ -shared ${LDFLAGS}
-
+install:
+	cp -f fasta2DB DBsplit DBshow DBstats DBrm ${PREFIX}/bin
 clean:
 	rm -f ${ALL}
 	rm -f ${DEPS}
