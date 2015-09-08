@@ -1,4 +1,4 @@
-THISDIR:=$(abspath $(dir $(lastword ${MAKEFILE_LIST})))
+THISDIR:=$(abspath $(dir $(realpath $(lastword ${MAKEFILE_LIST}))))
 CFLAGS+= -O3 -Wall -Wextra -fno-strict-aliasing -Wno-unused-result
 CPPFLAGS+= -MMD -MP
 LDLIBS+= -lm
@@ -20,6 +20,7 @@ libdazzdb.so: DB.os QV.os
 	${CC} -o $@ $^ -shared ${LDFLAGS}
 install:
 	cp -f fasta2DB DBsplit DBshow DBstats DBrm ${PREFIX}/bin
+	cp -f libdazzdb.* ${PREFIX}/lib
 clean:
 	rm -f ${ALL}
 	rm -f ${DEPS}
