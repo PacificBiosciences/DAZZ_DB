@@ -11,3 +11,7 @@
 /fasta2DB
 /quiva2DB
 /simulator
+/*.d
+/*.o
+/*.a
+/*.so
