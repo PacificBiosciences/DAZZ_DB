@@ -107,8 +107,8 @@ int main(int argc, char *argv[])
 
     pwd    = PathTo(argv[1]);
     root   = Root(argv[1],".db");
-    dbfile = Fopen(Catenate(pwd,"/",root,".db"),"r");
-    quiva  = Fopen(Catenate(pwd,PATHSEP,root,".qvs"),"r");
+    dbfile = Fopen(Catenate(pwd,"/",root,".db",NULL),"r");
+    quiva  = Fopen(Catenate(pwd,PATHSEP,root,".qvs",NULL),"r");
     free(pwd);
     free(root);
     if (dbfile == NULL || quiva == NULL)
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
         if (fscanf(dbfile,DB_FDATA,&last,fname,prolog) != 3)
           SYSTEM_ERROR
 
-        if ((ofile = Fopen(Catenate(".","/",fname,".quiva"),"w")) == NULL)
+        if ((ofile = Fopen(Catenate(fname,".quiva",NULL),"w")) == NULL)
           exit (1);
 
         if (VERBOSE)

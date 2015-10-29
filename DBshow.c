@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
       { root   = Root(argv[1],".dam");
         pwd    = PathTo(argv[1]);
 
-        hdrs = Fopen(Catenate(pwd,PATHSEP,root,".hdr"),"r");
+        hdrs = Fopen(Catenate(pwd,PATHSEP,root,".hdr",NULL),"r");
         if (hdrs == NULL)
           exit (1);
         DAM   = 1;
@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
       pwd    = PathTo(argv[1]);
       if (db->part > 0)
         *rindex(root,'.') = '\0';
-      dstub  = Fopen(Catenate(pwd,"/",root,".db"),"r");
+      dstub  = Fopen(Catenate(pwd,"/",root,".db",NULL),"r");
       if (dstub == NULL)
         exit (1);
       free(pwd);

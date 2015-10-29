@@ -97,25 +97,25 @@ int main(int argc, char *argv[])
     else
       root = Root(argv[1],".db");
     pwd = PathTo(argv[1]);
-    prefix = Strdup(Catenate(pwd,PATHSEP,root,"."),"Allocating track name");
+    prefix = Strdup(Catenate(pwd,PATHSEP,root,".",NULL),"Allocating track name");
     free(pwd);
     free(root);
 
-    aout = fopen(Catenate(prefix,argv[2],".","anno"),"r");
+    aout = fopen(Catenate(prefix,argv[2],".anno",NULL),"r");
     if (aout != NULL)
       { fprintf(stderr,"%s: Track file %s%s.anno already exists!\n",Prog_Name,prefix,argv[2]);
         fclose(aout);
         exit (1);
       }
 
-    dout = fopen(Catenate(prefix,argv[2],".","data"),"r");
+    dout = fopen(Catenate(prefix,argv[2],".data",NULL),"r");
     if (dout != NULL)
       { fprintf(stderr,"%s: Track file %s%s.data already exists!\n",Prog_Name,prefix,argv[2]);
         fclose(dout);
         exit (1);
       }
 
-    aout = Fopen(Catenate(prefix,argv[2],".","anno"),"w");
+    aout = Fopen(Catenate(prefix,argv[2],".anno",NULL),"w");
     if (aout == NULL)
       exit (1);
     dout = NULL;
@@ -138,10 +138,10 @@ int main(int argc, char *argv[])
       { FILE *afile, *dfile;
         int   i, size, tracklen;
 
-        afile = fopen(Numbered_Suffix(prefix,nfiles+1,Catenate(".",argv[2],".","anno")),"r");
+        afile = fopen(Catenate(prefix,Int_To_Str(nfiles+1),".",argv[2],".anno",NULL),"r");
         if (afile == NULL)
           break;
-        dfile = fopen(Numbered_Suffix(prefix,nfiles+1,Catenate(".",argv[2],".","data")),"r");
+        dfile = fopen(Catenate(prefix,Int_To_Str(nfiles+1),".",argv[2],".data",NULL),"r");
 
         if (VERBOSE)
           { fprintf(stderr,"Concatenating %s%d.%s ...\n",prefix,nfiles+1,argv[2]);
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
         if (nfiles == 0)
           { tracksiz = size;
             if (dfile != NULL)
-              { dout = Fopen(Catenate(prefix,argv[2],".","data"),"w");
+              { dout = Fopen(Catenate(prefix,argv[2],".data",NULL),"w");
                 if (dout == NULL)
                   { fclose(afile);
                     fclose(dfile);
@@ -285,10 +285,10 @@ int main(int argc, char *argv[])
 
 error:
   fclose(aout);
-  unlink(Catenate(prefix,argv[2],".","anno"));
+  unlink(Catenate(prefix,argv[2],".anno",NULL));
   if (dout != NULL)
     { fclose(dout);
-      unlink(Catenate(prefix,argv[2],".","data"));
+      unlink(Catenate(prefix,argv[2],".data",NULL));
     }
   free(prefix);
 

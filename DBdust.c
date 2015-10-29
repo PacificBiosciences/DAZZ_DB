@@ -157,12 +157,12 @@ int main(int argc, char *argv[])
     root  = Root(argv[1],".db");
     size  = 8;
 
-    fname = Catenate(pwd,PATHSEP,root,".dust.anno");
+    fname = Catenate(pwd,PATHSEP,root,".dust.anno",NULL);
     if ((afile = fopen(fname,"r+")) == NULL || db->part > 0)
       { if (afile != NULL)
           fclose(afile);
         afile = Fopen(fname,"w");
-        dfile = Fopen(Catenate(pwd,PATHSEP,root,".dust.data"),"w");
+        dfile = Fopen(Catenate(pwd,PATHSEP,root,".dust.data",NULL),"w");
         if (dfile == NULL || afile == NULL)
           exit (1);
         fwrite(&(db->nreads),sizeof(int),1,afile);
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
         fwrite(&indx,sizeof(int64),1,afile);
       }
     else
-      { dfile = Fopen(Catenate(pwd,PATHSEP,root,".dust.data"),"r+");
+      { dfile = Fopen(Catenate(pwd,PATHSEP,root,".dust.data",NULL),"r+");
         if (dfile == NULL)
           exit (1);
         if (fread(&nreads,sizeof(int),1,afile) != 1)

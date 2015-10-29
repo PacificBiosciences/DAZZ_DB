@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 
   root   = Root(argv[1],".dam");
   pwd    = PathTo(argv[1]);
-  dbname = Strdup(Catenate(pwd,"/",root,".dam"),"Allocating map index name");
+  dbname = Strdup(Catenate(pwd,"/",root,".dam",NULL),"Allocating map index name");
   if (dbname == NULL)
     exit (1);
 
@@ -231,9 +231,9 @@ int main(int argc, char *argv[])
     }
   ofiles = 0;
 
-  bases = Fopen(Catenate(pwd,PATHSEP,root,".bps"),"w");
-  indx  = Fopen(Catenate(pwd,PATHSEP,root,".idx"),"w");
-  hdrs  = Fopen(Catenate(pwd,PATHSEP,root,".hdr"),"w");
+  bases = Fopen(Catenate(pwd,PATHSEP,root,".bps",NULL),"w");
+  indx  = Fopen(Catenate(pwd,PATHSEP,root,".idx",NULL),"w");
+  hdrs  = Fopen(Catenate(pwd,PATHSEP,root,".hdr",NULL),"w");
   if (bases == NULL || indx == NULL || hdrs == NULL)
     exit (1);
 
@@ -285,7 +285,7 @@ int main(int argc, char *argv[])
 
         path  = PathTo(ng->name);
         core  = Root(ng->name,".fasta");
-        if ((input = Fopen(Catenate(path,"/",core,".fasta"),"r")) == NULL)
+        if ((input = Fopen(Catenate(path,"/",core,".fasta",NULL),"r")) == NULL)
           goto error;
         free(path);
 
@@ -440,10 +440,10 @@ error:
   fclose(indx);
   fclose(hdrs);
   fclose(bases);
-  unlink(Catenate(pwd,PATHSEP,root,".idx"));
-  unlink(Catenate(pwd,PATHSEP,root,".bps"));
-  unlink(Catenate(pwd,PATHSEP,root,".hdr"));
-  unlink(Catenate(pwd,"/",root,".dam"));
+  unlink(Catenate(pwd,PATHSEP,root,".idx",NULL));
+  unlink(Catenate(pwd,PATHSEP,root,".bps",NULL));
+  unlink(Catenate(pwd,PATHSEP,root,".hdr",NULL));
+  unlink(Catenate(pwd,"/",root,".dam",NULL));
 
   exit (1);
 }
