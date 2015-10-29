@@ -10,7 +10,7 @@ vpath %.c ${THISDIR}
 all: ${ALL}
 ${ALL}: libdazzdb.a
 
-libdazzdb.a: DB.o QV.o
+libdazzdb.a: DB.o QV.o open_compressed.o
 	${AR} -rcv $@ $^
 
 # Shared libs are not used yet, but maybe someday.
