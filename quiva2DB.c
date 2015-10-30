@@ -181,11 +181,11 @@ int main(int argc, char *argv[])
 
     root   = Root(argv[1],".db");
     pwd    = PathTo(argv[1]);
-    istub  = Fopen(Catenate(pwd,"/",root,".db",NULL),"r");
+    istub  = Fopen(Catenate(pwd,"/",root,".db"),"r");
     if (istub == NULL)
       exit (1);
 
-    indx  = Fopen(Catenate(pwd,PATHSEP,root,".idx",NULL),"r+");
+    indx  = Fopen(Catenate(pwd,PATHSEP,root,".idx"),"r+");
     if (indx == NULL)
       exit (1);
     if (fread(&db,sizeof(HITS_DB),1,indx) != 1)
@@ -253,9 +253,9 @@ int main(int argc, char *argv[])
         }
 
       if (ofile == 0)
-        quiva = Fopen(Catenate(pwd,PATHSEP,root,".qvs",NULL),"w");
+        quiva = Fopen(Catenate(pwd,PATHSEP,root,".qvs"),"w");
       else
-        quiva = Fopen(Catenate(pwd,PATHSEP,root,".qvs",NULL),"r+");
+        quiva = Fopen(Catenate(pwd,PATHSEP,root,".qvs"),"r+");
       if (quiva == NULL)
         exit (1);
 
@@ -304,7 +304,7 @@ int main(int argc, char *argv[])
 
         pwd  = PathTo(ng->name);
         root = Root(ng->name,".quiva");
-        if ((input = Fopen(Catenate(pwd,"/",root,".quiva",NULL),"r")) == NULL)
+        if ((input = Fopen(Catenate(pwd,"/",root,".quiva"),"r")) == NULL)
           goto error;
 
         if (VERBOSE)
@@ -375,7 +375,7 @@ error:
   if (coff == 0)
     { char *root = Root(argv[1],".db");
       char *pwd  = PathTo(argv[1]);
-      unlink(Catenate(pwd,PATHSEP,root,".qvs",NULL));
+      unlink(Catenate(pwd,PATHSEP,root,".qvs"));
       free(pwd);
       free(root);
      }

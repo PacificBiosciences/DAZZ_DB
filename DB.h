@@ -172,17 +172,17 @@ extern char Ebuffer[];
 
 void *Malloc(int64 size, char *mesg);                    //  Guarded versions of malloc, realloc
 void *Realloc(void *object, int64 size, char *mesg);     //  and strdup, that output "mesg" to
-char *Strdup(const char *string, const char *mesg);                  //  stderr if out of memory
+char *Strdup(char *string, char *mesg);                  //  stderr if out of memory
 
 FILE *Fopen(char *path, char *mode);     // Open file path for "mode"
 char *PathTo(char *path);                // Return path portion of file name "path"
-char *Root(const char *path, const char *suffix);    // Return the root name, excluding suffix, of "path"
+char *Root(char *path, char *suffix);    // Return the root name, excluding suffix, of "path"
 
-// Catenate returns concatenation of NULL terminated list in a *temporary* buffer
-// Int_To_Str returns the string form of an int in a *temporary* buffer
+// Catenate returns concatenation of path.sep.root.suffix in a *temporary* buffer
+// Numbered_Suffix returns concatenation of left.<num>.right in a *temporary* buffer
 
-char *Catenate(const char *first, ...);
-char *Int_To_Str(int num);
+char *Catenate(char *path, char *sep, char *root, char *suffix);
+char *Numbered_Suffix(char *left, int num, char *right);
 
 
 // DB-related utilities
@@ -319,9 +319,6 @@ typedef struct
   //    2. .origin contains the contig # of the read within a fasta entry (assembly sequences
   //          contain N-separated contigs), and .fpulse the first base of the contig in the
   //          fasta entry
-
-// set db to default values
-void Init_DB(HITS_DB *db);
 
   // Open the given database or dam, "path" into the supplied HITS_DB record "db". If the name has
   //   a part # in it then just the part is opened.  The index array is allocated (for all or

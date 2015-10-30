@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
   int        ALL;
   int        CUTOFF;
   int        SIZE;
+  int        SIZE_UNIT_LG;
 
   { int   i, j, k;
     int   flags[128];
@@ -89,6 +90,7 @@ int main(int argc, char *argv[])
 
     CUTOFF = 0;
     SIZE   = 200;
+    SIZE_UNIT_LG = 20;
 
     j = 1;
     for (i = 1; i < argc; i++)
@@ -102,6 +104,9 @@ int main(int argc, char *argv[])
             break;
           case 's':
             ARG_POSITIVE(SIZE,"Block size")
+            break;
+          case 'u':
+            ARG_POSITIVE(SIZE_UNIT_LG,"Block size unit (lg2, default=20)")
             break;
         }
       else
@@ -134,13 +139,13 @@ int main(int argc, char *argv[])
     pwd    = PathTo(argv[1]);
     if (status)
       { root   = Root(argv[1],".dam");
-        dbfile = Fopen(Catenate(pwd,"/",root,".dam",NULL),"r+");
+        dbfile = Fopen(Catenate(pwd,"/",root,".dam"),"r+");
       }
     else
       { root   = Root(argv[1],".db");
-        dbfile = Fopen(Catenate(pwd,"/",root,".db",NULL),"r+");
+        dbfile = Fopen(Catenate(pwd,"/",root,".db"),"r+");
       }
-    ixfile = Fopen(Catenate(pwd,PATHSEP,root,".idx",NULL),"r+");
+    ixfile = Fopen(Catenate(pwd,PATHSEP,root,".idx"),"r+");
     if (dbfile == NULL || ixfile == NULL)
       exit (1);
     free(pwd);
@@ -182,7 +187,7 @@ int main(int argc, char *argv[])
     int        nblock, ireads, treads, rlen, fno;
     int        i;
 
-    size = SIZE*1000000ll;
+    size = SIZE*(1LL << SIZE_UNIT_LG);
 
     nblock = 0;
     totlen = 0;

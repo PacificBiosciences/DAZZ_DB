@@ -72,10 +72,10 @@ int main(int argc, char *argv[])
 
   pwd    = PathTo(argv[1]);
   root   = Root(argv[1],".db");
-  afile  = Fopen(Catenate(pwd,PATHSEP,root,".dust.anno",NULL),"r");
-  dfile  = Fopen(Catenate(pwd,PATHSEP,root,".dust.data",NULL),"r");
-  nafile = Fopen(Catenate(pwd,PATHSEP,root,".next.anno",NULL),"w");
-  ndfile = Fopen(Catenate(pwd,PATHSEP,root,".next.data",NULL),"w");
+  afile  = Fopen(Catenate(pwd,PATHSEP,root,".dust.anno"),"r");
+  dfile  = Fopen(Catenate(pwd,PATHSEP,root,".dust.data"),"r");
+  nafile = Fopen(Catenate(pwd,PATHSEP,root,".next.anno"),"w");
+  ndfile = Fopen(Catenate(pwd,PATHSEP,root,".next.data"),"w");
   if (afile == NULL || dfile == NULL || nafile == NULL || ndfile == NULL)
     exit (1);
   free(pwd);

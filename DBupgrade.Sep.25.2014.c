@@ -90,8 +90,8 @@ int main(int argc, char *argv[])
 
   pwd    = PathTo(argv[1]);
   root   = Root(argv[1],".db");
-  ixfile = Fopen(Catenate(pwd,PATHSEP,root,".idx",NULL),"r");
-  nxfile = Fopen(Catenate(pwd,PATHSEP,root,".ndx",NULL),"w");
+  ixfile = Fopen(Catenate(pwd,PATHSEP,root,".idx"),"r");
+  nxfile = Fopen(Catenate(pwd,PATHSEP,root,".ndx"),"w");
   if (ixfile == NULL || nxfile == NULL)
     exit (1);
   free(pwd);

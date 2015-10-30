@@ -119,8 +119,8 @@ int main(int argc, char *argv[])
 
     pwd    = PathTo(argv[1]);
     root   = Root(argv[1],".dam");
-    dbfile = Fopen(Catenate(pwd,"/",root,".dam",NULL),"r");
-    hdrs   = Fopen(Catenate(pwd,PATHSEP,root,".hdr",NULL),"r");
+    dbfile = Fopen(Catenate(pwd,"/",root,".dam"),"r");
+    hdrs   = Fopen(Catenate(pwd,PATHSEP,root,".hdr"),"r");
     free(pwd);
     free(root);
     if (dbfile == NULL || hdrs == NULL)
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
         if (fscanf(dbfile,DB_FDATA,&last,fname,prolog) != 3)
           SYSTEM_ERROR
 
-        if ((ofile = Fopen(Catenate(fname,".fasta",NULL),"w")) == NULL)
+        if ((ofile = Fopen(Catenate(".","/",fname,".fasta"),"w")) == NULL)
           exit (1);
 
         if (VERBOSE)

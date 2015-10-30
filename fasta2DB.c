@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
 
     root   = Root(argv[1],".db");
     pwd    = PathTo(argv[1]);
-    dbname = Strdup(Catenate(pwd,"/",root,".db",NULL),"Allocating db name");
+    dbname = Strdup(Catenate(pwd,"/",root,".db"),"Allocating db name");
     if (dbname == NULL)
       exit (1);
 
@@ -239,8 +239,8 @@ int main(int argc, char *argv[])
     if (istub == NULL)
       { ofiles = 0;
 
-        bases = Fopen(Catenate(pwd,PATHSEP,root,".bps",NULL),"w+");
-        indx  = Fopen(Catenate(pwd,PATHSEP,root,".idx",NULL),"w+");
+        bases = Fopen(Catenate(pwd,PATHSEP,root,".bps"),"w+");
+        indx  = Fopen(Catenate(pwd,PATHSEP,root,".idx"),"w+");
         if (bases == NULL || indx == NULL)
           exit (1);
 
@@ -255,8 +255,8 @@ int main(int argc, char *argv[])
       { if (fscanf(istub,DB_NFILE,&ofiles) != 1)
           SYSTEM_ERROR
 
-        bases = Fopen(Catenate(pwd,PATHSEP,root,".bps",NULL),"r+");
-        indx  = Fopen(Catenate(pwd,PATHSEP,root,".idx",NULL),"r+");
+        bases = Fopen(Catenate(pwd,PATHSEP,root,".bps"),"r+");
+        indx  = Fopen(Catenate(pwd,PATHSEP,root,".idx"),"r+");
         if (bases == NULL || indx == NULL)
           exit (1);
 
@@ -272,7 +272,7 @@ int main(int argc, char *argv[])
       }
 
     flist  = (char **) Malloc(sizeof(char *)*(ofiles+ifiles),"Allocating file list");
-    ostub  = Fopen(Catenate(pwd,"/",root,".dbx",NULL),"w+");
+    ostub  = Fopen(Catenate(pwd,"/",root,".dbx"),"w+");
     if (ostub == NULL || flist == NULL)
       exit (1);
 
@@ -332,7 +332,7 @@ int main(int argc, char *argv[])
 
         path  = PathTo(ng->name);
         core  = Root(ng->name,".fasta");
-        if ((input = Fopen(Catenate(path,"/",core,".fasta",NULL),"r")) == NULL)
+        if ((input = Fopen(Catenate(path,"/",core,".fasta"),"r")) == NULL)
           goto error;
         free(path);
         if (strlen(core) >= MAX_NAME)
@@ -633,7 +633,7 @@ int main(int argc, char *argv[])
   fclose(indx);
   fclose(bases);
 
-  rename(Catenate(pwd,"/",root,".dbx",NULL),dbname);   //  New image replaces old image
+  rename(Catenate(pwd,"/",root,".dbx"),dbname);   //  New image replaces old image
 
   exit (0);
 
@@ -654,14 +654,14 @@ error:
   fclose(indx);
   fclose(bases);
   if (ioff == 0)
-    unlink(Catenate(pwd,PATHSEP,root,".idx",NULL));
+    unlink(Catenate(pwd,PATHSEP,root,".idx"));
   if (boff == 0)
-    unlink(Catenate(pwd,PATHSEP,root,".bps",NULL));
+    unlink(Catenate(pwd,PATHSEP,root,".bps"));
 
   if (istub != NULL)
     fclose(istub);
   fclose(ostub);
-  unlink(Catenate(pwd,"/",root,".dbx",NULL));
+  unlink(Catenate(pwd,"/",root,".dbx"));
 
   exit (1);
 }

@@ -55,7 +55,6 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <dirent.h>
-#include <stdarg.h>
 
 #include "DB.h"
 
@@ -102,7 +101,7 @@ void *Realloc(void *p, int64 size, char *mesg)
   return (p);
 }
 
-char *Strdup(const char *name, const char *mesg)
+char *Strdup(char *name, char *mesg)
 { char *s;
 
   if (name == NULL)
@@ -117,9 +116,8 @@ char *Strdup(const char *name, const char *mesg)
 }
 
 FILE *Fopen(char *name, char *mode)
-{ FILE *f = NULL;
+{ FILE *f;
   char newmode[3];
-  int i;
 
   if (name == NULL || mode == NULL)
     return (NULL);
@@ -128,19 +126,8 @@ FILE *Fopen(char *name, char *mode)
   } else {
       strcpy(newmode,mode);
   }
-  // in a cluster environment, nfs disks can fail to immediately display
-  // files created on another machine; if the file isn't there, give it
-  // a few tries, with 30 seconds between them
-  for (i = 0; i < 4 && f == NULL; ++i) {
-      if ((f = fopen(name, newmode)) == NULL) {
-          if (i < 3) {
-              EPRINTF(EPLACE, "%s: Cannot open %s for '%s', retrying\n", Prog_Name, name, mode);
-              sleep(30);
-          } else {
-              EPRINTF(EPLACE, "%s: Cannot open %s for '%s'\n", Prog_Name, name, mode);
-          }
-      }
-  }
+  if ((f = fopen(name,newmode)) == NULL)
+    EPRINTF(EPLACE,"%s: Cannot open %s for '%s'\n",Prog_Name,name,mode);
   return (f);
 }
 
@@ -159,9 +146,9 @@ char *PathTo(char *name)
   return (path);
 }
 
-char *Root(const char *name, const char *suffix)
-{ char *path;
-  const char *find;
+char *Root(char *name, char *suffix)
+{ char *path, *find, *dot;
+  int   epos;
 
   if (name == NULL)
     return (NULL);
@@ -170,112 +157,70 @@ char *Root(const char *name, const char *suffix)
     find = name;
   else
     find += 1;
-
-  if (suffix == NULL) {
-      size_t length;
-      const char *dot = strchr(find,'.');
-      if (dot != NULL) {
-          length = dot - find;
-      } else {
-          length = strlen(find);
-      }
-      path = Malloc(length + 1, "Extracting root from");
-      memcpy(path, find, length);
-      path[length] = '\0';
-  } else {
-      const size_t find_length = strlen(find);
-      const size_t suffix_length = strlen(suffix);
-      const size_t epos = find_length - suffix_length;
-      if (find_length > suffix_length && strcasecmp(find + epos, suffix) == 0) {
-          path = Malloc(epos + 1, "Extracting root from");
-          memcpy(path, find, epos);
-          path[epos] = '\0';
-      } else {
-          path = Strdup(find, "Allocating root");
-      }
-  }
+  if (suffix == NULL)
+    { dot = strchr(find,'.');
+      if (dot != NULL)
+        *dot = '\0';
+      path = Strdup(find,"Extracting root from");
+      if (dot != NULL)
+        *dot = '.';
+    }
+  else
+    { epos  = strlen(find);
+      epos -= strlen(suffix);
+      if (epos > 0 && strcasecmp(find+epos,suffix) == 0)
+        { find[epos] = '\0';
+          path = Strdup(find,"Extracting root from");
+          find[epos] = suffix[0];
+        }
+      else
+        path = Strdup(find,"Allocating root");
+    }
   return (path);
 }
 
-// concat NULL terminated variable list of char *'s into static location
+char *Catenate(char *path, char *sep, char *root, char *suffix)
+{ static char *cat = NULL;
+  static int   max = -1;
+  int len;
 
-char *Catenate(const char *first, ...) {
-    static char *cat = NULL;
-    static size_t max = 0;
-    if (first == NULL) {
-        return NULL;
-    }
-    // find size of finished string
-    size_t length = 1 + strlen(first);
-    va_list argp;
-    va_start(argp, first);
-    char *s;
-    while ((s = va_arg(argp, char *)) != NULL) {
-        length += strlen(s);
-    }
-    va_end(argp);
-    // check to make sure buffer is large enough to hold result
-    if (max < length) {
-        max = 1.2 * length + 100;
-        if (cat != NULL) {
-            free(cat);
-        }
-        cat = (char *)Malloc(max, "Catenate");
-        if (cat == NULL) {
-            return NULL;
+  if (path == NULL || root == NULL || sep == NULL || suffix == NULL)
+    return (NULL);
+  len =  strlen(path);
+  len += strlen(sep);
+  len += strlen(root);
+  len += strlen(suffix);
+  if (len > max)
+    { max = ((int) (1.2*len)) + 100;
+      if ((cat = (char *) realloc(cat,max+1)) == NULL)
+        { EPRINTF(EPLACE,"%s: Out of memory (Making path name for %s)\n",Prog_Name,root);
+          return (NULL);
         }
     }
-    length = strlen(first);
-    memcpy(cat, first, length);
-    char *t = cat + length;
-    va_start(argp, first);
-    while ((s = va_arg(argp, char *)) != NULL) {
-        length = strlen(s);
-        memcpy(t, s, length);
-        t += length;
-    }
-    va_end(argp);
-    t[0] = '\0';
-    return cat;
+  sprintf(cat,"%s%s%s%s",path,sep,root,suffix);
+  return (cat);
 }
 
-// converts a int to a string; returns a pointer to temporary storage
+char *Numbered_Suffix(char *left, int num, char *right)
+{ static char *suffix = NULL;
+  static int   max = -1;
+  int len;
 
-char *Int_To_Str(int x) {
-    static char *value = NULL;
-    static size_t max = 0;
-    const int negative = x < 0;
-    if (negative) {
-        x = -x;
-    }
-    // first digit, trailing null, possible negative sign
-    // (this takes care of the x == 0 case)
-    size_t length = negative ? 3 : 2;
-    int y = x;
-    for (y /= 10; y != 0; ++length, y /= 10) { }
-    if (max < length) {
-        max = 1.2 * length + 100;
-        if (value != NULL) {
-            free(value);
-        }
-        value = (char *)Malloc(max, "Converting int to string");
-        if (value == NULL) {
-            return NULL;
+  if (left == NULL || right == NULL)
+    return (NULL);
+  len =  strlen(left);
+  len += strlen(right) + 40;
+  if (len > max)
+    { max = ((int) (1.2*len)) + 100;
+      if ((suffix = (char *) realloc(suffix,max+1)) == NULL)
+        { EPRINTF(EPLACE,"%s: Out of memory (Making number suffix for %d)\n",Prog_Name,num);
+          return (NULL);
         }
     }
-    char *a = value + length - 1;
-    char *end_a = value - 1;
-    if (negative) {
-        value[0] = '-';
-        ++end_a;
-    }
-    *a = '\0';
-    --a;
-    for (; a != end_a; x /= 10, --a) {
-        *a = '0' + (x % 10);
-    }
-    return value;
+  sprintf(suffix,"%s%d%s",left,num,right);
+  return (suffix);
 }
+
 
 #define  COMMA  ','
 
@@ -438,28 +383,6 @@ void Number_Read(char *s)
   *s = 4;
 }
 
-void Init_DB(HITS_DB *db) {
-        db->ureads = 0;
-        db->treads = 0;
-        db->cutoff = 0;
-        db->all = 0;
-        db->freq[0] = 0;
-        db->freq[1] = 0;
-        db->freq[2] = 0;
-        db->freq[3] = 0;
-        db->maxlen = 0;
-        db->totlen = 0;
-        db->nreads = 0;
-        db->trimmed = 0;
-        db->part = 0;
-        db->ufirst = 0;
-        db->tfirst = 0;
-        db->path = NULL;
-        db->loaded = 0;
-        db->bases = NULL;
-        db->reads = NULL;
-        db->tracks = NULL;
-}
 
 /*******************************************************************************************
  *
@@ -507,11 +430,11 @@ int Open_DB(char* path, HITS_DB *db)
     part = 0;
 
   isdam = 0;
-  cat = Catenate(pwd,"/",root,".db",NULL);
+  cat = Catenate(pwd,"/",root,".db");
   if (cat == NULL)
     return (-1);
   if ((dbvis = fopen(cat,"r")) == NULL)
-    { cat = Catenate(pwd,"/",root,".dam",NULL);
+    { cat = Catenate(pwd,"/",root,".dam");
       if (cat == NULL)
         return (-1);
       if ((dbvis = fopen(cat,"r")) == NULL)
@@ -521,7 +444,7 @@ int Open_DB(char* path, HITS_DB *db)
       isdam = 1;
     }
 
-  if ((index = Fopen(Catenate(pwd,PATHSEP,root,".idx",NULL),"r")) == NULL)
+  if ((index = Fopen(Catenate(pwd,PATHSEP,root,".idx"),"r")) == NULL)
     goto error1;
   if (fread(db,sizeof(HITS_DB),1,index) != 1)
     { EPRINTF(EPLACE,"%s: Index file (.idx) of %s is junk\n",Prog_Name,root);
@@ -632,7 +555,7 @@ int Open_DB(char* path, HITS_DB *db)
   ((int *) (db->reads))[-2] = tlast - tfirst;
 
   db->nreads = nreads;
-  db->path   = Strdup(Catenate(pwd,PATHSEP,root,NULL),"Allocating Open_DB path");
+  db->path   = Strdup(Catenate(pwd,PATHSEP,root,""),"Allocating Open_DB path");
   if (db->path == NULL)
     goto error2;
   db->bases  = NULL;
@@ -819,7 +742,7 @@ int Load_QVs(HITS_DB *db)
 
   //  Open .qvs, .idx, and .db files
 
-  quiva = Fopen(Catenate(db->path,".qvs",NULL),"r");
+  quiva = Fopen(Catenate(db->path,"","",".qvs"),"r");
   if (quiva == NULL)
     return (-1);
 
@@ -830,7 +753,7 @@ int Load_QVs(HITS_DB *db)
   qvtrk  = NULL;
 
   root = rindex(db->path,'/') + 2;
-  istub = Fopen(Catenate(db->path,"/",root,".db",NULL),"r");
+  istub = Fopen(Catenate(db->path,"/",root,".db"),"r");
   if (istub == NULL)
     goto error;
 
@@ -874,7 +797,7 @@ int Load_QVs(HITS_DB *db)
             first = last;
           }
 
-        indx   = Fopen(Catenate(db->path,".idx",NULL),"r");
+        indx   = Fopen(Catenate(db->path,"","",".idx"),"r");
         ncodes = fend-fbeg;
         coding = (QVcoding *) Malloc(sizeof(QVcoding)*ncodes,"Allocating coding schemes");
         table  = (uint16 *) Malloc(sizeof(uint16)*db->nreads,"Allocating QV table indices");
@@ -1059,11 +982,11 @@ int Check_Track(HITS_DB *db, char *track)
 
   afile = NULL;
   if (db->part > 0)
-    { afile  = fopen(Catenate(db->path,".",Int_To_Str(db->part),".",track,".anno",NULL),"r");
+    { afile  = fopen(Catenate(db->path,Numbered_Suffix(".",db->part,"."),track,".anno"),"r");
       ispart = 1;
     }
   if (afile == NULL)
-    { afile  = fopen(Catenate(db->path,".",track,".anno",NULL),"r");
+    { afile  = fopen(Catenate(db->path,".",track,".anno"),"r");
       ispart = 0;
     }
   if (afile == NULL)
@@ -1117,11 +1040,11 @@ HITS_TRACK *Load_Track(HITS_DB *db, char *track)
 
   afile = NULL;
   if (db->part)
-    { afile  = fopen(Catenate(db->path,".",Int_To_Str(db->part),".",track,".anno",NULL),"r");
+    { afile  = fopen(Catenate(db->path,Numbered_Suffix(".",db->part,"."),track,".anno"),"r");
       ispart = 1;
     }
   if (afile == NULL)
-    { afile = fopen(Catenate(db->path,".",track,".anno",NULL),"r");
+    { afile = fopen(Catenate(db->path,".",track,".anno"),"r");
       ispart = 0;
     }
   if (afile == NULL)
@@ -1135,9 +1058,9 @@ HITS_TRACK *Load_Track(HITS_DB *db, char *track)
   record = NULL;
 
   if (ispart)
-    name = Catenate(db->path,".",Int_To_Str(db->part),".",track,".data",NULL);
+    name = Catenate(db->path,Numbered_Suffix(".",db->part,"."),track,".data");
   else
-    name = Catenate(db->path,".",track,".data",NULL);
+    name = Catenate(db->path,".",track,".data");
   if (name == NULL)
     goto error;
   dfile = fopen(name,"r");
@@ -1330,7 +1253,7 @@ int Load_Read(HITS_DB *db, int i, char *read, int ascii)
       EXIT(1);
     }
   if (bases == NULL)
-    { bases = Fopen(Catenate(db->path,".bps",NULL),"r");
+    { bases = Fopen(Catenate(db->path,"","",".bps"),"r");
       if (bases == NULL)
         EXIT(1);
       db->bases = (void *) bases;
@@ -1374,7 +1297,7 @@ char *Load_Subread(HITS_DB *db, int i, int beg, int end, char *read, int ascii)
       EXIT(NULL);
     }
   if (bases == NULL)
-    { bases = Fopen(Catenate(db->path,".bps",NULL),"r");
+    { bases = Fopen(Catenate(db->path,"","",".bps"),"r");
       if (bases == NULL)
         EXIT(NULL);
       db->bases = (void *) bases;
@@ -1508,7 +1431,7 @@ int Read_All_Sequences(HITS_DB *db, int ascii)
   int64  o, off;
   int    i, len, clen;
 
-  bases = Fopen(Catenate(db->path,".bps",NULL),"r");
+  bases = Fopen(Catenate(db->path,"","",".bps"),"r");
   if (bases == NULL)
     EXIT(1);
 
@@ -1587,17 +1510,17 @@ int List_DB_Files(char *path, void actor(char *path, char *extension))
   isdam = 0;
   while ((dp = readdir(dirp)) != NULL)     //   Get case dependent root name (if necessary)
     { name = dp->d_name;
-      if (strcmp(name,Catenate(root,".db",NULL)) == 0)
+      if (strcmp(name,Catenate("","",root,".db")) == 0)
         break;
-      if (strcmp(name,Catenate(root,".dam",NULL)) == 0)
+      if (strcmp(name,Catenate("","",root,".dam")) == 0)
         { isdam = 1;
           break;
         }
-      if (strcasecmp(name,Catenate(root,".db",NULL)) == 0)
+      if (strcasecmp(name,Catenate("","",root,".db")) == 0)
         { strncpy(root,name,rlen);
           break;
         }
-      if (strcasecmp(name,Catenate(root,".dam",NULL)) == 0)
+      if (strcasecmp(name,Catenate("","",root,".dam")) == 0)
         { strncpy(root,name,rlen);
           isdam = 1;
           break;
@@ -1611,9 +1534,9 @@ int List_DB_Files(char *path, void actor(char *path, char *extension))
     }
 
   if (isdam)
-    actor(Catenate(pwd,"/",root,".dam",NULL),"dam");
+    actor(Catenate(pwd,"/",root,".dam"),"dam");
   else
-    actor(Catenate(pwd,"/",root,".db",NULL),"db");
+    actor(Catenate(pwd,"/",root,".db"),"db");
 
   rewinddir(dirp);                         //   Report each auxiliary file
   while ((dp = readdir(dirp)) != NULL)
@@ -1631,7 +1554,7 @@ int List_DB_Files(char *path, void actor(char *path, char *extension))
         continue;
       if (strncmp(name,root,rlen) != 0)
         continue;
-      actor(Catenate(pwd,PATHSEP,name,NULL),name+(rlen+1));
+      actor(Catenate(pwd,PATHSEP,name,""),name+(rlen+1));
     }
   closedir(dirp);
 
