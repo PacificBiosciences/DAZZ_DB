@@ -5,8 +5,8 @@ ALL = fasta2DB DB2fasta quiva2DB DB2quiva DBsplit DBdust Catrack DBshow DBstats 
 
 all: $(ALL)
 
-fasta2DB: fasta2DB.c DB.c DB.h QV.c QV.h
-	gcc $(CFLAGS) -o fasta2DB fasta2DB.c DB.c QV.c -lm
+fasta2DB: fasta2DB.c DB.c DB.h QV.c QV.h open_compressed.c open_compressed.h
+	gcc $(CFLAGS) -o fasta2DB fasta2DB.c DB.c QV.c open_compressed.c -lm
 
 DB2fasta: DB2fasta.c DB.c DB.h QV.c QV.h
 	gcc $(CFLAGS) -o DB2fasta DB2fasta.c DB.c QV.c -lm
