@@ -69,7 +69,7 @@
 #define PATHSEP "/"
 #endif
 
-static char *Usage = "[-a] [-x<int>] [-s<int(200)>] <path:db|dam>";
+static char *Usage = "[-a] [-x<int>] [-s<float(200.)>] <path:db|dam>";
 
 int main(int argc, char *argv[])
 { HITS_DB    db, dbs;
@@ -79,18 +79,17 @@ int main(int argc, char *argv[])
 
   int        ALL;
   int        CUTOFF;
-  int        SIZE;
-  int        SIZE_UNIT_LG;
+  int64      SIZE;
 
   { int   i, j, k;
     int   flags[128];
     char *eptr;
+    float size;
 
     ARG_INIT("DBsplit")
 
     CUTOFF = 0;
-    SIZE   = 200;
-    SIZE_UNIT_LG = 20;
+    size   = 200;
 
     j = 1;
     for (i = 1; i < argc; i++)
@@ -103,17 +102,19 @@ int main(int argc, char *argv[])
             ARG_NON_NEGATIVE(CUTOFF,"Min read length cutoff")
             break;
           case 's':
-            ARG_POSITIVE(SIZE,"Block size")
-            break;
-          case 'u':
-            ARG_POSITIVE(SIZE_UNIT_LG,"Block size unit (lg2, default=20)")
+            ARG_REAL(size)
+            if (size <= 0.)
+              { fprintf(stderr,"%s: Block size must be a positive number\n",Prog_Name);
+                exit (1);
+              }
             break;
         }
       else
         argv[j++] = argv[i];
     argc = j;
 
-    ALL = flags['a'];
+    SIZE = size*1000000ll;
+    ALL  = flags['a'];
 
     if (argc != 2)
       { fprintf(stderr,"Usage: %s %s\n",Prog_Name,Usage);
@@ -178,16 +179,15 @@ int main(int argc, char *argv[])
     dbpos = ftello(dbfile);
     fseeko(dbfile,dbpos,SEEK_SET);
     fprintf(dbfile,DB_NBLOCK,0);
-    fprintf(dbfile,DB_PARAMS,(int64) SIZE,CUTOFF,ALL);
+    fprintf(dbfile,DB_PARAMS,SIZE,CUTOFF,ALL);
   }
 
   { HITS_READ *reads  = db.reads;
     int        nreads = db.ureads;
-    int64      size, totlen;
+    int64      totlen;
     int        nblock, ireads, treads, rlen, fno;
     int        i;
 
-    size = SIZE*(1LL << SIZE_UNIT_LG);
 
     nblock = 0;
     totlen = 0;
@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
             { ireads += 1;
               treads += 1;
               totlen += rlen;
-              if (totlen >= size)
+              if (totlen >= SIZE)
                 { fprintf(dbfile,DB_BDATA,i+1,treads);
                   totlen = 0;
                   ireads = 0;
@@ -216,7 +216,7 @@ int main(int argc, char *argv[])
             { ireads += 1;
               treads += 1;
               totlen += rlen;
-              if (totlen >= size)
+              if (totlen >= SIZE)
                 { fprintf(dbfile,DB_BDATA,i+1,treads);
                   totlen = 0;
                   ireads = 0;
