@@ -65,7 +65,6 @@
 #include <unistd.h>
 
 #include "DB.h"
-#include "open_compressed.h"
 
 #ifdef HIDE_FILES
 #define PATHSEP "/."
@@ -303,8 +302,6 @@ int main(int argc, char *argv[])
     int            c;
     File_Iterator *ng;
 
-    open_compressed_init();
-
     //  Buffer for reads all in the same well
 
     pmax = 100;
@@ -328,45 +325,33 @@ int main(int argc, char *argv[])
 
     ng = init_file_iterator(argc,argv,IFILE,2);
     while (next_file(ng))
-      { int   input;
-        char *core, *prolog;
-        char *filename, *intermediate_filename;
-        int   nline, rlen, pcnt;
+      { FILE *input;
+        char *path, *core, *prolog;
+        int   nline, eof, rlen, pcnt;
         int   pwell;
-        ssize_t input_read;
-        const char *suffix;
 
         if (ng->name == NULL) goto error;
 
         //  Open it: <path>/<core>.fasta, check that core is not too long,
         //           and checking that it is not already in flist.
 
-        filename = ng->name;
-        if (find_suffix((const char **)&filename,&suffix) == -1) {
-            fprintf(stderr,"%s: Could not find file: %s\n",Prog_Name,argv[c]);
-            goto error;
-        }
-        intermediate_filename = suffix != NULL ? Root(filename,(char*)suffix) : filename;
-        core  = Root(intermediate_filename,".fasta");
-        if (intermediate_filename != filename) {
-            free(intermediate_filename);
-        }
+        path  = PathTo(ng->name);
+        core  = Root(ng->name,".fasta");
+        if ((input = Fopen(Catenate(path,"/",core,".fasta"),"r")) == NULL)
+          goto error;
+        free(path);
         if (strlen(core) >= MAX_NAME)
           { fprintf(stderr,"%s: File name over %d chars: '%.200s'\n",
                            Prog_Name,MAX_NAME,core);
             goto error;
           }
-        if ((input = open_compressed(filename)) == -1) {
-          fprintf(stderr, "%s: Could not open: %s\n", Prog_Name, filename);
-          goto error;
-        }
 
         { int j;
 
           for (j = 0; j < ofiles; j++)
             if (strcmp(core,flist[j]) == 0)
-              { fprintf(stderr,"%s: File %s is already in database %s.db\n",
-                               Prog_Name,filename,Root(argv[1],".db"));
+              { fprintf(stderr,"%s: File %s.fasta is already in database %s.db\n",
+                               Prog_Name,core,Root(argv[1],".db"));
                 goto error;
               }
         }
@@ -376,10 +361,10 @@ int main(int argc, char *argv[])
         pcnt  = 0;
         rlen  = 0;
         nline = 1;
-        input_read = pfgets(input,read,MAX_NAME);
-        if (input_read == -1)
-          { fprintf(stderr,"Skipping '%s', file is empty!\n",filename);
-            close_compressed(input);
+        eof   = (fgets(read,MAX_NAME,input) == NULL);
+        if (eof || strlen(read) < 1)
+          { fprintf(stderr,"Skipping '%s', file is empty!\n",core);
+            fclose(input);
             free(core);
             continue;
           }
@@ -395,16 +380,14 @@ int main(int argc, char *argv[])
         // Check that the first line has PACBIO format, and record prolog in 'prolog'.
 
         if (read[strlen(read)-1] != '\n')
-          { fprintf(stderr,"File %s, Line 1: Fasta line is too long (> %d chars)\n",
-                           filename,MAX_NAME-2);
+          { fprintf(stderr,"File %s.fasta, Line 1: Fasta line is too long (> %d chars)\n",
+                           core,MAX_NAME-2);
             goto error;
           }
-        // > is fasta format, @ is fastq format
-        if (read[0] != '>' && read[0] != '@')
-          { fprintf(stderr,"File %s, Line 1: First header in fasta file is missing\n",filename);
+        if (!eof && read[0] != '>')
+          { fprintf(stderr,"File %s.fasta, Line 1: First header in fasta file is missing\n",core);
             goto error;
           }
-        const char header_delim = read[0];      // read header marker for file
 
         { char *find;
           int   well, beg, end, qv;
@@ -420,8 +403,8 @@ int main(int argc, char *argv[])
               if (prolog == NULL) goto error;
             }
           else
-            { fprintf(stderr,"File %s, Line %d: Pacbio header line format error\n",
-                             filename,nline);
+            { fprintf(stderr,"File %s.fasta, Line %d: Pacbio header line format error\n",
+                             core,nline);
               goto error;
             }
         }
@@ -431,22 +414,22 @@ int main(int argc, char *argv[])
         { int i, x;
 
           pwell = -1;
-          while (input_read > 0)
+          while (!eof)
             { int   beg, end, clen;
               int   well, qv;
               char *find;
 
               find = index(read+(rlen+1),'/');
               if (find == NULL)
-                { fprintf(stderr,"File %s, Line %d: Pacbio header line format error\n",
-                                 filename,nline);
+                { fprintf(stderr,"File %s.fasta, Line %d: Pacbio header line format error\n",
+                                 core,nline);
                   goto error;
                 }
               if (PNAME == NULL)
                 { *find = '\0';
                   if (strcmp(read+(rlen+1),prolog) != 0)
                     { fprintf(stderr,
-                              "File %s, Line %d: Pacbio header line name inconsistent\n",
+                              "File %s.fasta, Line %d: Pacbio header line name inconsistent\n",
                               core,nline);
                       goto error;
                     }
@@ -454,75 +437,36 @@ int main(int argc, char *argv[])
                 }
               x = sscanf(find+1,"%d/%d_%d RQ=0.%d\n",&well,&beg,&end,&qv);
               if (x < 3)
-                { fprintf(stderr,"File %s, Line %d: Pacbio header line format error\n",
-                                 filename,nline);
+                { fprintf(stderr,"File %s.fasta, Line %d: Pacbio header line format error\n",
+                                 core,nline);
                   goto error;
                 }
               else if (x == 3)
                 qv = 0;
 
-              // up buffer size if needed
-              if (rmax < end - beg + MAX_NAME) {
-                  rmax = 1.2 * (end - beg) + MAX_NAME;
-                  read = (char *)realloc(read,rmax+1);
-                  if (read == NULL) {
-                      fprintf(stderr,"File %s, Line %d:",filename,nline);
-                      fprintf(stderr," Out of memory (Allocating line buffer)\n");
-                      goto error;
-                  }
-              }
-
               rlen  = 0;
               while (1)
-                { input_read = pfgets(input,read+rlen,rmax-rlen);
-                  if (input_read == -1) {       // eof
-                      break;
-                  }
-                  x = rlen + input_read;
-                  const int has_trailing_newline = read[x - 1] == '\n';
-                  // lack of newline could be eof, or could be end of buffer
-                  if (has_trailing_newline) {
-                      --x;      // backup so newline will get overwritten
-                      ++nline;
-                  }
-
-                  // check to see if we've reached the end of the read
-                  if (read[rlen] == header_delim || (read[rlen] == '+' && header_delim == '@')) {
-                    // make sure header line is complete
-                    if (!has_trailing_newline) {
-                        fprintf(stderr,"File %s, Line %d:",filename,nline);
-                        fprintf(stderr," Fasta line not terminated, possible file corruption\n");
-                        goto error;
-                    }
-                    if (read[rlen] == '+') {
-                      char buf[MAX_NAME];
-                      // skip fastq quality
-                      while ((input_read = pfgets(input,buf,MAX_NAME)) != -1 && buf[input_read - 1] != '\n') { }
-                      if (input_read == -1) {
-                        fprintf(stderr,"File %s, Line %d:",filename,nline);
-                        fprintf(stderr," Fasta line not terminated, possible file corruption\n");
-                        goto error;
-                      }
-                      ++nline;
-                      // now read in header line
-                      input_read = pfgets(input, buf, MAX_NAME);
-                      if (input_read != -1) {   // not eof, copy in header
-                        if (buf[0] != header_delim || buf[input_read - 1] != '\n') {
-                          fprintf(stderr, "File %s, Line %d: Incorrect read header: %s\n", filename, nline, buf);
+                { eof = (fgets(read+rlen,MAX_NAME,input) == NULL);
+                  nline += 1;
+                  x = strlen(read+rlen)-1;
+                  if (read[rlen+x] != '\n')
+                    { if (read[rlen] == '>')
+                        { fprintf(stderr,"File %s.fasta, Line %d:",core,nline);
+                          fprintf(stderr," Fasta header line is too long (> %d chars)\n",
+                                         MAX_NAME-2);
                           goto error;
                         }
-                        ++nline;
-                        memcpy(read + rlen, buf, input_read + 1);
-                      }
+                      else
+                        x += 1;
                     }
+                  if (eof || read[rlen] == '>')
                     break;
-                  }
-                  rlen = x;
+                  rlen += x;
                   if (rlen + MAX_NAME > rmax)
                     { rmax = ((int) (1.2 * rmax)) + 1000 + MAX_NAME;
                       read = (char *) realloc(read,rmax+1);
                       if (read == NULL)
-                        { fprintf(stderr,"File %s, Line %d:",filename,nline);
+                        { fprintf(stderr,"File %s.fasta, Line %d:",core,nline);
                           fprintf(stderr," Out of memory (Allocating line buffer)\n");
                           goto error;
                         }
@@ -559,7 +503,7 @@ int main(int argc, char *argv[])
                     { pmax = ((int) (pcnt*1.2)) + 100;
                       prec = (HITS_READ *) realloc(prec,sizeof(HITS_READ)*pmax);
                       if (prec == NULL)
-                        { fprintf(stderr,"File %s, Line %d: Out of memory",filename,nline);
+                        { fprintf(stderr,"File %s.fasta, Line %d: Out of memory",core,nline);
                           fprintf(stderr," (Allocating read records)\n");
                           goto error;
                         }
@@ -594,10 +538,7 @@ int main(int argc, char *argv[])
         }
 
         free(prolog);
-        close_compressed(input);
-        if (filename != ng->name) {
-            free(filename);
-        }
+        fclose(input);
       }
 
     //  Finished loading all sequences: update relevant fields in db record
@@ -617,7 +558,6 @@ int main(int argc, char *argv[])
         if (maxlen > db.maxlen)
           db.maxlen = maxlen;
       }
-    open_compressed_finish();
   }
 
   //  If db has been previously partitioned then calculate additional partition points and
@@ -646,12 +586,11 @@ int main(int argc, char *argv[])
       fprintf(ostub,DB_NBLOCK,0);
       if (fscanf(istub,DB_PARAMS,&size,&cutoff,&allflag) != 3)
         SYSTEM_ERROR
-      fprintf(ostub,DB_PARAMS,size,cutoff,allflag); 
+      fprintf(ostub,DB_PARAMS,size,cutoff,allflag);
       if (allflag)
         allflag = 0;
       else
         allflag = DB_BEST;
-      size *= 1000000ll;
 
       nblock -= 1;
       for (i = 0; i <= nblock; i++)
