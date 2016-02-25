@@ -32,7 +32,7 @@
 #define PATHSEP "/"
 #endif
 
-static char *Usage = "[-a] [-x<int>] [-s<float(200.)>] <path:db|dam>";
+static char *Usage = "[-a] [-A] [-x<int>] [-s<float(200.)>] <path:db|dam>\n  -A will undo any -a";
 
 int main(int argc, char *argv[])
 { HITS_DB    db, dbs;
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
       if (argv[i][0] == '-')
         switch (argv[i][1])
         { default:
-            ARG_FLAGS("a")
+            ARG_FLAGS("aA")
             break;
           case 'x':
             ARG_NON_NEGATIVE(CUTOFF,"Min read length cutoff")
@@ -78,6 +78,7 @@ int main(int argc, char *argv[])
 
     SIZE = size*1000000ll;
     ALL  = flags['a'];
+    if (flags['A']) ALL = 0;
 
     if (argc != 2)
       { fprintf(stderr,"Usage: %s %s\n",Prog_Name,Usage);
