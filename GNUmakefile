@@ -19,7 +19,7 @@ libdazzdb.a: DB.o QV.o
 libdazzdb.so: DB.os QV.os
 	${CC} -o $@ $^ -shared ${LDFLAGS}
 install:
-	cp -f fasta2DB DBsplit DBshow DBstats DBrm ${PREFIX}/bin
+	cp -f fasta2DB DBsplit DBshow DBstats DBdust DB2fasta DBrm ${PREFIX}/bin
 	cp -f libdazzdb.* ${PREFIX}/lib
 clean:
 	rm -f ${ALL}
