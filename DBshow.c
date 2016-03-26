@@ -26,7 +26,7 @@
 #endif
 
 static char *Usage[] =
-    { "[-unqUQ] [-w<int(80)>] [-m<track>]+",
+    { "[-MunqUQ] [-w<int(80)>] [-m<track>]+",
       "         <path:db|dam> [ <reads:FILE> | <reads:range> ... ]"
     };
 
@@ -92,6 +92,7 @@ int main(int argc, char *argv[])
   File_Iterator *iter = NULL;
   FILE          *input;
 
+  int         PB_MAP;
   int         TRIM, UPPER;
   int         DOSEQ, DOQVS, QUIVA, DAM;
   int         WIDTH;
@@ -119,7 +120,7 @@ int main(int argc, char *argv[])
       if (argv[i][0] == '-')
         switch (argv[i][1])
         { default:
-            ARG_FLAGS("unqUQ")
+            ARG_FLAGS("MunqUQ")
             break;
           case 'w':
             ARG_NON_NEGATIVE(WIDTH,"Line width")
@@ -139,6 +140,7 @@ int main(int argc, char *argv[])
     argc = j;
 
     DAM   = 0;
+    PB_MAP   = flags['M'];
     TRIM  = 1-flags['u'];
     UPPER = 1+flags['U'];
     DOQVS = flags['q'];
@@ -468,11 +470,19 @@ int main(int argc, char *argv[])
                 if (QUIVA)
                   printf("@%s/%d/%d_%d",flist[map],r->origin,r->fpulse,r->fpulse+len);
                 else
+                  if (PB_MAP)
+                  // For PacBio: print DB index, unique-id, length
+                  //printf("%d %s/%d %d",
+                  //        i,flist[map],r->origin,r->rlen);
+                  printf("%d %s/%d/%d_%d %d",
+                          i, flist[map],r->origin,r->fpulse,r->fpulse+len, r->rlen);
+                  else
                   printf(">%s/%d/%d_%d",flist[map],r->origin,r->fpulse,r->fpulse+len);
                 if (qv > 0)
                   printf(" RQ=0.%3d",qv);
               }
             printf("\n");
+            if (PB_MAP) continue;
 
             if (DOQVS)
               Load_QVentry(db,i,entry,UPPER);
