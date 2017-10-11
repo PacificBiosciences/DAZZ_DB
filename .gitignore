@@ -14,3 +14,6 @@
 /quiva2DB
 /rangen
 /simulator
+
+# In case we build here
+/build/
