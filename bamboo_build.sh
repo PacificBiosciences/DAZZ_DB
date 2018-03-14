@@ -6,8 +6,8 @@ set -vex
 
 PREFIX=$PWD/build
 cd ${THISDIR}
-module load gcc/6.4.0
-module load git/2.8.3
+module load gcc
+module load git
 module load ccache
 export CCACHE_COMPILERCHECK='%compiler% -dumpversion'
 
