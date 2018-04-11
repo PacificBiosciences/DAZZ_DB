@@ -22,8 +22,9 @@
 static char *Usage = "[-vU] [-w<int(80)>] <path:dam>";
 
 int main(int argc, char *argv[])
-{ HITS_DB    _db, *db = &_db;
+{ DAZZ_DB    _db, *db = &_db;
   FILE       *dbfile, *hdrs;
+  char       *dbfile_name, *hdrs_name;
   int         nfiles;
   int         VERBOSE, UPPER, WIDTH;
 
@@ -57,6 +58,9 @@ int main(int argc, char *argv[])
 
     if (argc != 2)
       { fprintf(stderr,"Usage: %s %s\n",Prog_Name,Usage);
+        fprintf(stderr,"\n");
+        fprintf(stderr,"      -U: Use upper case for DNA (default is lower case).\n");
+        fprintf(stderr,"      -w: Print -w bp per line (default is 80).\n");
         exit (1);
       }
   }
@@ -82,22 +86,23 @@ int main(int argc, char *argv[])
 
     pwd    = PathTo(argv[1]);
     root   = Root(argv[1],".dam");
-    dbfile = Fopen(Catenate(pwd,"/",root,".dam"),"r");
-    hdrs   = Fopen(Catenate(pwd,PATHSEP,root,".hdr"),"r");
+    dbfile_name = Strdup(Catenate(pwd,"/",root,".dam"),"Allocating db file name");
+    hdrs_name   = Strdup(Catenate(pwd,PATHSEP,root,".hdr"),"Allocating header file name");
+    dbfile = Fopen(dbfile_name,"r");
+    hdrs   = Fopen(hdrs_name,"r");
     free(pwd);
     free(root);
-    if (dbfile == NULL || hdrs == NULL)
+    if (dbfile_name == NULL || hdrs_name == NULL || dbfile == NULL || hdrs == NULL)
       exit (1);
   }
 
   //  nfiles = # of files in data base
 
-  if (fscanf(dbfile,DB_NFILE,&nfiles) != 1)
-    SYSTEM_ERROR
+  FSCANF(dbfile,DB_NFILE,&nfiles)
 
   //  For each file do:
 
-  { HITS_READ  *reads;
+  { DAZZ_READ  *reads;
     char       *read;
     int         f, first;
     char        nstring[WIDTH+1];
@@ -120,11 +125,10 @@ int main(int argc, char *argv[])
 
         //  Scan db image file line, create .fasta file for writing
 
-        if (fscanf(dbfile,DB_FDATA,&last,fname,prolog) != 3)
-          SYSTEM_ERROR
+        FSCANF(dbfile,DB_FDATA,&last,fname,prolog)
 
         if (strcmp(fname,"stdout") == 0)
-          { ofile  = stdout;
+          { ofile = stdout;
 
             if (VERBOSE)
               { fprintf(stderr,"Sending %d contigs to stdout ...\n",last-first);
@@ -147,7 +151,7 @@ int main(int argc, char *argv[])
         wpos = 0;
         for (i = first; i < last; i++)
           { int        j, len, nlen, w;
-            HITS_READ *r;
+            DAZZ_READ *r;
 
             r     = reads + i;
             len   = r->rlen;
@@ -157,9 +161,9 @@ int main(int argc, char *argv[])
                   { fprintf(ofile,"\n");
                     wpos = 0;
                   }
-                fseeko(hdrs,r->coff,SEEK_SET);
-                fgets(header,MAX_NAME,hdrs);
-                fputs(header,ofile);
+                FSEEKO(hdrs,r->coff,SEEK_SET)
+                FGETS(header,MAX_NAME,hdrs)
+                FPUTS(header,ofile)
               }
 
             if (r->fpulse != 0)
@@ -169,11 +173,11 @@ int main(int argc, char *argv[])
                   nlen = r->fpulse;
 
                 for (j = 0; j+(w = WIDTH-wpos) <= nlen; j += w)
-                  { fprintf(ofile,"%.*s\n",w,nstring);
+                  { FPRINTF(ofile,"%.*s\n",w,nstring)
                     wpos = 0;
                   }
                 if (j < nlen)
-                  { fprintf(ofile,"%.*s",nlen-j,nstring);
+                  { FPRINTF(ofile,"%.*s",nlen-j,nstring)
                     if (j == 0)
                       wpos += nlen;
                     else
@@ -184,11 +188,11 @@ int main(int argc, char *argv[])
             Load_Read(db,i,read,UPPER);
 
             for (j = 0; j+(w = WIDTH-wpos) <= len; j += w)
-              { fprintf(ofile,"%.*s\n",w,read+j);
+              { FPRINTF(ofile,"%.*s\n",w,read+j)
                 wpos = 0;
               }
             if (j < len)
-              { fprintf(ofile,"%s",read+j);
+              { FPRINTF(ofile,"%s",read+j)
                 if (j == 0)
                   wpos += len;
                 else
@@ -196,11 +200,9 @@ int main(int argc, char *argv[])
               }
           }
         if (wpos > 0)
-          fprintf(ofile,"\n");
-
+          FPRINTF(ofile,"\n")
         if (ofile != stdout)
-          fclose(ofile);
-
+          FCLOSE(ofile)
         first = last;
       }
   }

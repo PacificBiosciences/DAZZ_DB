@@ -44,7 +44,7 @@ A DB con contain the information needed by Quiver, or by Arrow, or neither, but
 not both.  A DB containing neither Quiver or Arrow information is termed a
 Sequence-DB (S-DB).  A DB with Quiver information is a Quiver-DB (Q-DB) and
 a DB with Arrow information is an Arrow-DB (A-DB). All commands are aware of
-the state of a DB and respond to options according to their type.
+the state of a DB and respond to options according to their type. 
 
 A Dazzler DB consists of one named, *visible* file, e.g. FOO.db, and several
 *invisible* secondary files encoding various elements of the DB.  The secondary files
@@ -171,7 +171,7 @@ input.  That is, this is a perfect inversion, including the reconstitution of th
 proper .fasta headers.  Because of this property, one can, if desired, delete the
 .fasta source files once they are in the DB as they can always be recreated from it.
 Entries imported from the standard input will be place in the faux file name given on
-import, or to the standard output if no name was given.
+import, or to the standard output if no name was given. 
 By default the output sequences are in lower case and 80 chars per line.  The -U option
 specifies upper case should be used, and the characters per line, or line width, can be
 set to any positive value with the -w option.
@@ -199,7 +199,7 @@ were input.  That is, this is a perfect inversion, including the reconstitution 
 proper .quiva headers.  Because of this property, one can, if desired, delete the
 .quiva source files once they are in the DB as they can always be recreated from it.
 Entries imported from the standard input will be placed in the faux file name given on
-import, or to the standard output if no name was given.
+import, or to the standard output if no name was given. 
 By .fastq convention each QV vector is output as a line without new-lines, and by
 default the Deletion Tag entry is in lower case letters.  The -U option specifies
 upper case letters should be used instead.
@@ -225,7 +225,7 @@ were input.  That is, this is a perfect inversion, including the reconstitution 
 proper .arrow headers.  Because of this property, one can, if desired, delete the
 .arrow source files once they are in the DB as they can always be recreated from it.
 Entries imported from the standard input will be placed in the faux file name given on
-import, or to the standard output if no name was given.
+import, or to the standard output if no name was given. 
 By default the output sequences are formatted 80 chars per line,
 but the characters per line, or line width, can be
 set to any positive value with the -w option.
@@ -259,7 +259,7 @@ should be used, and the characters per line, or line width, can be set to any po
 value with the -w option.
 
 ```
-9. DBsplit [-af] [-x<int>] [-s<int(200)>] <path:db|dam>
+9. DBsplit [-af] [-x<int>] [-s<double(200.)>] <path:db|dam>
 ```
 
 Divide the database \<path\>.db or \<path\>.dam conceptually into a series of blocks
@@ -279,13 +279,20 @@ question has previously bin split, i.e. one is not interactively asked if they w
 to proceed.
 
 ```
-10. DBdust [-b] [-w<int(64)>] [-t<double(2.)>] [-m<int(10)>] <path:db|dam>
+10. DBtrim [-af] [-x<int>] <path:db|dam>
+```
+
+Exactly like DBsplit except that it only resets the trimming parameters (and not the split
+partition itself).
+
+```
+11. DBdust [-b] [-w<int(64)>] [-t<double(2.)>] [-m<int(10)>] <path:db|dam>
 ```
 
 Runs the symmetric DUST algorithm over the reads in the untrimmed DB \<path\>.db or
 \<path\>.dam producing a track .\<path\>.dust[.anno,.data] that marks all intervals of low
 complexity sequence, where the scan window is of size -w, the threshold for being a
-low-complexity interval is -t, and only perfect intervals of size greater than -m are
+low-complexity interval is -t, and only low-complexity intervals of size greater than -m are
 recorded.  If the -b option is set then the definition of low complexity takes into
 account the frequency of a given base.  The command is incremental if given a DB to
 which new data has been added since it was last run on the DB, then it will extend
@@ -300,16 +307,19 @@ This permits job parallelism in block-sized chunks, and the resulting sequence o
 block tracks can then be merged into a track for the entire untrimmed DB with Catrack.
 
 ```
-11. Catrack [-v] <path:db|dam> <track:name>
+12. Catrack [-vfd] <path:db|dam> <track:name>
 ```
 
-Find all block tracks of the form .\<path\>.#.\<track\>... and merge them into a single
+Find all block tracks of the form .\<path\>.#.\<track\>... and concatenate them into a single
 track, .\<path\>.\<track\>..., for the given DB or DAM.   The block track files must all
 encode the same kind of track data (this is checked), and the files must exist for
-block 1, 2, 3, ... up to the last block number.
+block 1, 2, 3, ... up to the last block number.  If the -f option is set, then the
+concatenation takes place regardless of whether or not the single, combined track
+already exists or not.  If the -d option is set then every block track is removed after
+the successful construction of the combined track.
 
 ```
-12. DBshow [-unqaUQA] [-w<int(80)>] [-m<track>]+
+13. DBshow [-unqaUQA] [-w<int(80)>] [-m<mask>]+
                       <path:db|dam> [ <reads:FILE> | <reads:range> ... ]
 ```
 
@@ -348,7 +358,7 @@ fasta2DB, quiva2D, and arrow2DB, giving one a simple way to make a DB of a subse
 the reads for testing purposes.
 
 ```
-13. DBdump [-rhsaqip] [-uU] [-m<track>]+
+14. DBdump [-rhsaqip] [-uU] [-m<mask>]+
                       <path:db|dam> [ <reads:FILE> | <reads:range> ... ]
 ```
 
@@ -362,7 +372,7 @@ which items of information are output as follows:
 subset of reads is requested).
 
 * -h requests the header information be output as the source file name on an H-line, the
-well # and pulse range on an L-line, and optionally the quality of the read if given on a Q-line.
+ If the -d option is set then every block track is removed after the successful construction of the combined track.well # and pulse range on an L-line, and optionally the quality of the read if given on a Q-line.
 
 * -s requests the sequence be output on an S-line.
 
@@ -422,7 +432,7 @@ Arrow pulse width strings are identical to that for the sequence as they are all
 the same length for any given entry.
 
 ```
-14. DBstats [-nu] [-b<int(1000)] [-m<track>]+ <path:db|dam>
+15. DBstats [-nu] [-b<int(1000)] [-m<mask>]+ <path:db|dam>
 ```
 
 Show overview statistics for all the reads in the trimmed data base \<path\>.db or
@@ -434,15 +444,23 @@ intervals along the read can be specified with the -m option in which case a sum
 and a histogram of the interval lengths is displayed.
 
 ```
-15. DBrm <path:db|dam> ...
+16. DBrm [-v] <path:db|dam> ...
 ```
 
 Delete all the files for the given data bases.  Do not use rm to remove a database, as
 there are at least two and often several secondary files for each DB including track
 files, and all of these are removed by DBrm.
+If the -v option is set then every file deleted is listed.
 
 ```
-16. DBwipe <path:db|dam> ...
+17. DBmv [-v] <old:db|dam> <new:db|dam>
+```
+
+Rename all the files for the data base old to use the new root.
+If the -v option is set then every file move is displayed.
+
+```
+18. DBwipe <path:db|dam> ...
 ```
 
 Delete any Arrow or Quiver data from the given databases.  This removes the .arw or
@@ -450,7 +468,7 @@ Delete any Arrow or Quiver data from the given databases.  This removes the .arw
 or Quiver.  Basically, converts an A-DB or Q-DB back to a simple S-DB.
 
 ```
-17.  simulator <genome:dam> [-CU] [-m<int(10000)>] [-s<int(2000)>] [-e<double(.15)]
+19.  simulator <genome:dam> [-CU] [-m<int(10000)>] [-s<int(2000)>] [-e<double(.15)]
                                   [-c<double(50.)>] [-f<double(.5)>] [-x<int(4000)>]
                                   [-w<int(80)>] [-r<int>] [-M<file>]
 ```
@@ -485,7 +503,7 @@ a read is say 's b e' then if b \< e the read is a perturbed copy of s[b,e] in t
 forward direction, and a perturbed copy s[e,b] in the reverse direction otherwise.
 
 ```
-18. rangen <genlen:double> [-U] [-b<double(.5)>] [-w<int(80)>] [-r<int>]
+20. rangen <genlen:double> [-U] [-b<double(.5)>] [-w<int(80)>] [-r<int>]
 ```
 
 Generate a random DNA sequence of length genlen*1Mbp that has an AT-bias of -b.
@@ -497,7 +515,7 @@ generation process so that one can reproducibly generate the same sequence. If t
 parameter is missing, then the job id of the invocation seeds the random number
 generator effectively guaranteeing a different sequence with each invocation.
 
-Example: A small complete example of most of the commands above.
+Example: A small complete example of most of the commands above. 
 
 ```
 > rangen 1.0 >R.fasta           //  Generate a randome 1Mbp sequence R.fasta
