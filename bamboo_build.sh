@@ -37,6 +37,7 @@ rm -rf "${DESTDIR}"
 
 case "${bamboo_planRepository_branchName}" in
   develop|master)
+    DESTDIR=
     TERM='dumb' DESTDIR="${DESTDIR}" ninja -C ./build -v install
     chmod -R a+rwx "${DESTDIR}${PREFIX_ARG}"/*
     module load dazzdb/${bamboo_planRepository_branchName}
