@@ -323,7 +323,8 @@ int main(int argc, char *argv[])
 
   { int            maxlen;
     int64          totlen, count[4];
-    int            pmax, rmax;
+    int64          rmax;
+    int            pmax;
     DAZZ_READ     *prec;
     char          *read;
     int            c;
@@ -390,16 +391,14 @@ int main(int argc, char *argv[])
 
         eof = (fgets(read,MAX_NAME,input) == NULL);
         if (eof || strlen(read) < 1)
-          { free(core);
-            fclose(input);
+          { fclose(input);
             if (PIPE != NULL)
               { fprintf(stderr,"Standard input is empty, terminating!\n");
                 break;
               }
-            else
-              { fprintf(stderr,"Skipping '%s', file is empty!\n",core);
-                continue;
-              }
+            fprintf(stderr,"Skipping '%s', file is empty!\n",core);
+            free(core);
+            continue;
           }
 
         //  Check that core is not too long and name is unique or last source if PIPE'd
@@ -455,6 +454,11 @@ int main(int argc, char *argv[])
               strcpy(prolog,read+1);
               *find = '/';
             }
+          else if (find != NULL && sscanf(find+1,"%d/ccs\n",&well) >= 1)
+            { *find = '\0';
+              strcpy(prolog,read+1);
+              *find = '/';
+            }
           else
             { fprintf(stderr,"File %s.fasta, Line 1: Pacbio header line format error\n",core);
               goto error;
@@ -490,9 +494,15 @@ int main(int argc, char *argv[])
               *find = '/';
               x = sscanf(find+1,"%d/%d_%d RQ=0.%d\n",&well,&beg,&end,&qv);
               if (x < 3)
-                { fprintf(stderr,"File %s.fasta, Line %d: Pacbio header line format error\n",
-                                 core,nline);
-                  goto error;
+                { char *secn = index(find+1,'/');
+                  x = sscanf(find+1,"%d/ccs\n",&well);
+                  if (secn == NULL || strncmp(secn+1,"ccs",3) != 0 || x < 1)
+                    { fprintf(stderr,"File %s.fasta, Line %d: Pacbio header line format error\n",
+                                     core,nline);
+                      goto error;
+                    }
+                  beg = 0;
+                  qv  = 0;
                 }
               else if (x == 3)
                 qv = 0;
@@ -516,7 +526,7 @@ int main(int argc, char *argv[])
                     break;
                   rlen += x;
                   if (rlen + MAX_NAME > rmax)
-                    { rmax = ((int) (1.2 * rmax)) + 1000 + MAX_NAME;
+                    { rmax = ((int64) (1.2 * rmax)) + 1000 + MAX_NAME;
                       read = (char *) realloc(read,rmax+1);
                       if (read == NULL)
                         { fprintf(stderr,"File %s.fasta, Line %d:",core,nline);

@@ -3,10 +3,9 @@ CFLAGS+= -O3 -Wall -Wextra -fno-strict-aliasing -Wno-unused-result
 CPPFLAGS+= -MMD -MP
 LDLIBS+= -lm
 LDFLAGS+=
-ALL = fasta2DB DB2fasta quiva2DB DB2quiva DBsplit DBdust Catrack DBshow DBstats DBrm simulator \
-      fasta2DAM DAM2fasta DBdump rangen
-ALL = fasta2DB DB2fasta DBsplit DBdust Catrack DBshow DBstats DBrm simulator \
-      fasta2DAM DAM2fasta DBdump rangen
+ALL = fasta2DB DB2fasta DBsplit DBdust Catrack DBshow DBstats DBrm DBmv \
+      simulator fasta2DAM DAM2fasta DBdump rangen arrow2DB DB2arrow DBwipe DBtrim DBa2b DBb2a
+
 #quiva2DB would require -DINTERACTIVE, and we do not need quiva support.
 vpath %.c ${THISDIR}
 
