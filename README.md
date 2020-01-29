@@ -2,6 +2,7 @@
 
 ## _Author:  Gene Myers_
 ## _First:   July 17, 2013_
+## _Current:   April 19, 2019_
 
 For typeset documentation, examples of use, and design philosophy please go to
 my [blog](https://dazzlerblog.wordpress.com/command-guides/dazz_db-command-guide).
@@ -116,8 +117,9 @@ refer to a database we are referring to either a DB or a DAM.
 The command DBsplit sets or resets the current partition for a database which is
 determined by 3 parameters: (i) the total number of basepairs to place in each block,
 (ii) the minimum read length of reads to include within a block, and (iii) whether or
-not to only include the longest read from a given well or all reads from a well (NB:
-several reads of the same insert in a given well can be produced by the Pacbio
+not to only include the longest (-l) or median (-m) read from a given well or all
+reads from a well (-a) (NB: several reads of the same insert in a given well can be
+produced by the Pacbio
 instrument).  Note that the length and uniqueness parameters effectively select a
 subset of the reads that contribute to the size of a block.  We call this subset the
 *trimmed* data base.  Some commands operate on the entire database, others on the
@@ -156,7 +158,9 @@ in a given named input (i.e. all sources other than -i without a name) can only 
 added consecutively to the DB (this is checked by the command). The .fasta headers must
 be in the "Pacbio" format (i.e. the output of the Pacbio tools or our dextract program)
 and the well, pulse interval, and read quality are extracted from the header and kept
-with each read record. If the files are being added to an existing database, and the
+with each read record.  The headers may now also be those Pacbio outputs for CCS data
+wherein the pulse range is replaced by the string "ccs" and in which case only the
+well number is recorded.  If the files are being added to an existing database, and the
 partition settings of the DB have already been set (see DBsplit below), then the
 partitioning of the database is updated to include the new data.  A file may contain
 the data from multiple SMRT cells provided the reads for each SMRT cell are consecutive
@@ -259,7 +263,7 @@ should be used, and the characters per line, or line width, can be set to any po
 value with the -w option.
 
 ```
-9. DBsplit [-af] [-x<int>] [-s<double(200.)>] <path:db|dam>
+9. DBsplit [-aflm] [-x<int>] [-s<double(200.)>] <path:db|dam>
 ```
 
 Divide the database \<path\>.db or \<path\>.dam conceptually into a series of blocks
@@ -277,6 +281,12 @@ associated with the DB are also computed on the fly when loading a database bloc
 If the -f option is set, the split is forced regardless of whether or not the DB in
 question has previously bin split, i.e. one is not interactively asked if they wish
 to proceed.
+
+By default, the primary read for each well consists of the longest subread of the insert
+from the well.  By setting the -m parameter, the subread of median length becomes the
+primary read instead.  One can at any later time change this back to the default longest
+by splitting again with the -l parameter set.  The setting of the primary reads occurs
+regardless of whether the -a parameter is set or not.
 
 ```
 10. DBtrim [-af] [-x<int>] <path:db|dam>
@@ -307,11 +317,12 @@ This permits job parallelism in block-sized chunks, and the resulting sequence o
 block tracks can then be merged into a track for the entire untrimmed DB with Catrack.
 
 ```
-12. Catrack [-vfd] <path:db|dam> <track:name>
+12. Catrack [-vfd] <path:db|dam> <track:name> ...
 ```
 
 Find all block tracks of the form .\<path\>.#.\<track\>... and concatenate them into a single
-track, .\<path\>.\<track\>..., for the given DB or DAM.   The block track files must all
+track, .\<path\>.\<track\>..., for the given DB or DAM.  Do so for each track name present on
+the command line.    The block track files must all
 encode the same kind of track data (this is checked), and the files must exist for
 block 1, 2, 3, ... up to the last block number.  If the -f option is set, then the
 concatenation takes place regardless of whether or not the single, combined track
@@ -358,7 +369,7 @@ fasta2DB, quiva2D, and arrow2DB, giving one a simple way to make a DB of a subse
 the reads for testing purposes.
 
 ```
-14. DBdump [-rhsaqip] [-uU] [-m<mask>]+
+14. DBdump [-rhsaqif] [-uU] [-m<mask>]+
                       <path:db|dam> [ <reads:FILE> | <reads:range> ... ]
 ```
 
@@ -383,7 +394,7 @@ the 4 SNR channel values on an N-line,
 
 * -i requests that the intrinsic quality values be output on an I-line.
 
-* -p requests the repeat profile be output (if available) on a P-line, on a P-line
+* -f requests the source file name is output just before the first read data in the file on a F-line.
 
 * -m\<track\> requests that mask \<track\> be output on a T-line.
 
@@ -397,9 +408,8 @@ separated by a single blank space.  Strings are output as first an integer givin
 length of the string, a blank space, and then the string terminated by a new-line.
 Intrinsic quality values are between 0 and 50, inclusive, and a vector of said are
 displayed as an alphabetic string where 'a' is 0, 'b' is '1', ... 'z' is 25, 'A' is
-26, 'B' is 27, ... and 'Y' is 50.  Repeat profiles are also displayed as string where
-'_' denotes 0 repetitions, and then 'a' through 'N' denote the values 1 through 40,
-respectively.   The set of all possible lines is as follows:
+26, 'B' is 27, ... and 'Y' is 50.
+The set of all possible lines is as follows:
 
 ```
     R #              - read number
@@ -411,28 +421,38 @@ respectively.   The set of all possible lines is as follows:
     S # string       - sequence string
     A # string       - arrow pulse-width string
     I # string       - intrinsic quality vector (as an ASCII string)
-    P # string       - repeat profile vector (as an ASCII string)
+    F # string       - name of source file of following data
     d # string       - Quiva deletion values (as an ASCII string)
     c # string       - Quiva deletion character string
     i # string       - Quiva insertion value string
     m # string       - Quiva merge value string
     s # string       - Quiva substitution value string
-    + X #            - Total amount of X (X = H or S or I or P or R or M or T#)
-    @ X #            - Maximum amount of X (X = H or S or I or P or T#)
+    + X #            - Total amount of X (X = H or S or I or F or R or M or T#)
+    @ X #            - Maximum amount of X (X = H or S or I or F or T#)
 ```
 
 1-code lines that begin with + or @ are always the first lines in the output.  They
 give size information about what is contained in the output.  That is '+ X #' gives
 the number of reads (X=R), the number of masks (X=M), or the total number of
 characters in all headers (X=H), sequences (X=S), intrinsic quality vectors (X=I),
-read profile vector (X=P), or track (X=T#).  And '@ X #' gives the maximum number of
-characters in any header (X=H), sequence (X=S), intrincic quality vector (X=I), read
-profile vector (X=P), or track (X=T#).  The size numbers for the Quiva strings and
+file names (X=F), or track (X=T#).  And '@ X #' gives the maximum number of
+characters in any header (X=H), sequence (X=S), intrincic quality vector (X=I),
+names (X=F), or track (X=T#).  The size numbers for the Quiva strings and
 Arrow pulse width strings are identical to that for the sequence as they are all of
 the same length for any given entry.
 
 ```
-15. DBstats [-nu] [-b<int(1000)] [-m<mask>]+ <path:db|dam>
+15a. DBa2b
+15b. DBb2a
+```
+
+Pipes (stdin to stdout) that convert an ASCII output produced by DBdump into a compressed
+binary representation (DBa2b) and vice verse (DBb2a).  The idea is to save disk space by
+keeping the dumps in a more compessed format.
+
+
+```
+16. DBstats [-nu] [-b<int(1000)] [-m<mask>]+ <path:db|dam>
 ```
 
 Show overview statistics for all the reads in the trimmed data base \<path\>.db or
@@ -444,7 +464,7 @@ intervals along the read can be specified with the -m option in which case a sum
 and a histogram of the interval lengths is displayed.
 
 ```
-16. DBrm [-v] <path:db|dam> ...
+17. DBrm [-v] <path:db|dam> ...
 ```
 
 Delete all the files for the given data bases.  Do not use rm to remove a database, as
@@ -453,14 +473,14 @@ files, and all of these are removed by DBrm.
 If the -v option is set then every file deleted is listed.
 
 ```
-17. DBmv [-v] <old:db|dam> <new:db|dam>
+18. DBmv [-v] <old:db|dam> <new:db|dam>
 ```
 
 Rename all the files for the data base old to use the new root.
 If the -v option is set then every file move is displayed.
 
 ```
-18. DBwipe <path:db|dam> ...
+19. DBwipe <path:db|dam>
 ```
 
 Delete any Arrow or Quiver data from the given databases.  This removes the .arw or
@@ -468,7 +488,7 @@ Delete any Arrow or Quiver data from the given databases.  This removes the .arw
 or Quiver.  Basically, converts an A-DB or Q-DB back to a simple S-DB.
 
 ```
-19.  simulator <genome:dam> [-CU] [-m<int(10000)>] [-s<int(2000)>] [-e<double(.15)]
+20.  simulator <genome:dam> [-CU] [-m<int(10000)>] [-s<int(2000)>] [-e<double(.15)]
                                   [-c<double(50.)>] [-f<double(.5)>] [-x<int(4000)>]
                                   [-w<int(80)>] [-r<int>] [-M<file>]
 ```
@@ -503,7 +523,7 @@ a read is say 's b e' then if b \< e the read is a perturbed copy of s[b,e] in t
 forward direction, and a perturbed copy s[e,b] in the reverse direction otherwise.
 
 ```
-20. rangen <genlen:double> [-U] [-b<double(.5)>] [-w<int(80)>] [-r<int>]
+21. rangen <genlen:double> [-U] [-b<double(.5)>] [-w<int(80)>] [-r<int>]
 ```
 
 Generate a random DNA sequence of length genlen*1Mbp that has an AT-bias of -b.

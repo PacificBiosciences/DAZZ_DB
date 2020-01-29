@@ -318,7 +318,7 @@ int main(int argc, char *argv[])
 
   { int            maxlen;
     int64          totlen, count[4];
-    int            rmax;
+    int64          rmax;
     DAZZ_READ      prec;
     char          *read;
     int            append;
@@ -407,8 +407,12 @@ int main(int argc, char *argv[])
         nline = 1;
         eof   = (fgets(read,MAX_NAME,input) == NULL);
         if (eof || strlen(read) < 1)
-          { fprintf(stderr,"Skipping '%s', file is empty!\n",core);
-            fclose(input);
+          { fclose(input);
+            if (PIPE != NULL)
+              { fprintf(stderr,"Standard input is empty, terminating!\n");
+                break;
+              }
+            fprintf(stderr,"Skipping '%s', file is empty!\n",core);
             free(core);
             continue;
           }
@@ -463,7 +467,7 @@ int main(int argc, char *argv[])
                     break;
                   rlen += x;
                   if (rlen + MAX_NAME > rmax)
-                    { rmax = ((int) (1.2 * rmax)) + 1000 + MAX_NAME;
+                    { rmax = ((int64) (1.2 * rmax)) + 1000 + MAX_NAME;
                       read = (char *) realloc(read,rmax+1);
                       if (read == NULL)
                         { fprintf(stderr,"File %s.fasta, Line %d:",core,nline);
